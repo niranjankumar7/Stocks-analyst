@@ -1,20 +1,17 @@
+import yfinance as yf
 import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import mplfinance as mpf
 
-# Construct the file path
-file_path = '/Users/niranjankumar/Desktop/Project/BAJFINANCE.NS.csv'
-
-# Load the CSV file into a DataFrame
-df = pd.read_csv(file_path, parse_dates=['Date'])
-# Sort the DataFrame by date to ensure the data is in the correct order
-df.sort_values('Date', inplace=True)
+# Fetch the stock data
+stock_symbol = 'ICICIBANK.NS'
+start_date = '2018-01-01'
+end_date = '2023-11-20'
+df = yf.download(stock_symbol, start=start_date, end=end_date)
+df.reset_index(inplace=True)
 
 # Initialize a list to hold the trade details
 trades = []
 
-# Loop through the DataFrame starting from the first date we can check for a 3-day inside pattern
+# Loop through the DataFrame to check for a 3-day inside pattern
 for i in range(len(df) - 6):
     # Define the high and low of the first day
     first_day_high = df.loc[i, 'High']
@@ -28,18 +25,18 @@ for i in range(len(df) - 6):
             # A trade has been triggered
             entry_date = df.loc[i+3, 'Date']
             entry = fourth_day_close
-            stop_loss = df.loc[i+3,
-                               'High'] if fourth_day_close < first_day_low else df.loc[i+3, 'Low']
-            target = entry - \
-                (2 * (stop_loss - entry)) if fourth_day_close < first_day_low else entry + \
-                (2 * (entry - stop_loss))
+
+            # Using the open value of the breakout day as stop loss
+            stop_loss = df.loc[i+3, 'Open']
+
+            # Calculating the target based on the new stop loss
+            target = entry - (2 * (stop_loss - entry)) if fourth_day_close < first_day_low else entry + (2 * (entry - stop_loss))
 
             # Record the 7th day closing value
             seventh_day_close = df.loc[i+6, 'Close']
 
             # Determine if the trade is in profit or loss on the 7th day
-            trade_result = "Profit" if (fourth_day_close < first_day_low and seventh_day_close < entry) or (
-                fourth_day_close > first_day_high and seventh_day_close > entry) else "Loss"
+            trade_result = "Profit" if (fourth_day_close < first_day_low and seventh_day_close < entry) or (fourth_day_close > first_day_high and seventh_day_close > entry) else "Loss"
             profit_or_loss_amount = seventh_day_close - entry
 
             # Add the trade details to the list
